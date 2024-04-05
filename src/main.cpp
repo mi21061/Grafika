@@ -62,7 +62,7 @@ struct ProgramState {
     bool ImGuiEnabled = false;
     Camera camera;
     bool CameraMouseMovementUpdateEnabled = true;
-    glm::vec3 modelPosition = glm::vec3(0.0f, 4.0f, 0.0f);
+    glm::vec3 modelPosition = glm::vec3(-10.0f, 4.0f, 0.0f);
     float modelScale = 1.0f;
     PointLight pointLight;
     ProgramState()
@@ -300,10 +300,9 @@ int main() {
     // --------------------------------
     vector<glm::vec3> vegetation
             {
-                    glm::vec3(-5.0f, 0.0f, -2.3f),
-                    glm::vec3(-2.5f, 0.0f, -2.3f),
-                    glm::vec3(-4.0f, 0.0f, -1.3f),
-                    glm::vec3(-1.5f, 0.0f, -2.3f)
+                    glm::vec3(-10.0f, 0.0f, -1.3f),
+                    glm::vec3(3.5f, 0.0f, -5.3f),
+                    glm::vec3(1.0f, 0.0f, -1.7f)
             };
 
     // shader configuration
@@ -349,7 +348,7 @@ int main() {
         ourShader.setFloat("material.shininess", 32.0f);
         // view/projection transformations
         glm::mat4 projection = glm::perspective(glm::radians(programState->camera.Zoom),
-                                                (float) SCR_WIDTH / (float) SCR_HEIGHT, 0.1f, 100.0f);
+                                                (float) SCR_WIDTH / (float) SCR_HEIGHT, 0.1f, 200.0f);
         glm::mat4 view = programState->camera.GetViewMatrix();
         ourShader.setMat4("projection", projection);
         ourShader.setMat4("view", view);
@@ -358,6 +357,16 @@ int main() {
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model,
                                programState->modelPosition); // translate it down so it's at the center of the scene
+        model = glm::scale(model, glm::vec3(programState->modelScale));    // it's a bit too big for our scene, so scale it down
+        model = glm::rotate(model, glm::radians(-45.0f), glm::vec3(1, 0, 0));
+        ourShader.setMat4("model", model);
+        ourModel.Draw(ourShader);
+
+        ourShader.setFloat("pointLight.quadratic", 0);
+
+        model = glm::mat4(1.0f);
+        model = glm::translate(model,
+                               glm::vec3(37.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
         model = glm::scale(model, glm::vec3(programState->modelScale));    // it's a bit too big for our scene, so scale it down
         model = glm::rotate(model, glm::radians(-45.0f), glm::vec3(1, 0, 0));
         ourShader.setMat4("model", model);
@@ -383,21 +392,29 @@ int main() {
         // vegetation
         glBindVertexArray(transparentVAO);
         glBindTexture(GL_TEXTURE_2D, treeFlowersTexture);
-        for (unsigned int i = 0; i < vegetation.size()/2; i++)
+        for (unsigned int i = 0; i < 2; i++)
         {
             model = glm::mat4(1.0f);
             model = glm::translate(model, vegetation[i]);
+            if(i==0){
+                model = glm::rotate(model, glm::radians(45.0f),glm::vec3(0, 1, 0));
+                model = glm::scale(model, glm::vec3(2));
+            }
+            else {
+                model = glm::rotate(model, glm::radians(-45.0f), glm::vec3(0, 1, 0));
+                model = glm::scale(model, glm::vec3(3));
+            }
             transparentShader.setMat4("model", model);
             glDrawArrays(GL_TRIANGLES, 0, 6);
         }
         glBindTexture(GL_TEXTURE_2D, grassTexture);
-        for (unsigned int i = vegetation.size()/2; i < vegetation.size(); i++)
-        {
-            model = glm::mat4(1.0f);
-            model = glm::translate(model, vegetation[i]);
-            transparentShader.setMat4("model", model);
-            glDrawArrays(GL_TRIANGLES, 0, 6);
-        }
+        model = glm::mat4(1.0f);
+        model = glm::translate(model, vegetation[vegetation.size()-1]);
+        model = glm::rotate(model, glm::radians(-45.0f),glm::vec3(0, 1, 0));
+        //model = glm::scale(model, glm::vec3(2));
+        transparentShader.setMat4("model", model);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+
 
         if (programState->ImGuiEnabled)
             DrawImGui(programState);
