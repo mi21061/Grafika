@@ -46,8 +46,8 @@ bool firstMouse = true;
 float deltaTime = 0.0f;
 float lastFrame = 0.0f;
 
-struct PointLight {
-    glm::vec3 position;
+struct Light {
+    glm::vec3 direction;
     glm::vec3 ambient;
     glm::vec3 diffuse;
     glm::vec3 specular;
@@ -63,8 +63,8 @@ struct ProgramState {
     Camera camera;
     bool CameraMouseMovementUpdateEnabled = true;
     glm::vec3 modelPosition = glm::vec3(-10.0f, 4.0f, 4.0f);
-    float modelScale = 0.75f;
-    PointLight pointLight;
+    float modelScale = 1.0f;
+    Light sun;
     ProgramState()
             : camera(glm::vec3(0.0f, 0.0f, 3.0f)) {}
 
@@ -176,15 +176,15 @@ int main() {
     Model ourModel("resources/objects/model/beetle_obj/Beetle.obj");
     ourModel.SetShaderTextureNamePrefix("material.");
 
-    PointLight& pointLight = programState->pointLight;
-    pointLight.position = glm::vec3(4.0f, 4.0, 0.0);
-    pointLight.ambient = glm::vec3(1, 1, 1);
-    pointLight.diffuse = glm::vec3(0.6, 0.6, 0.6);
-    pointLight.specular = glm::vec3(1.0, 1.0, 1.0);
+    Light& sun = programState->sun;
+    sun.direction = glm::vec3(-10.0f, 4.0, 8.0);
+    sun.ambient = glm::vec3(1, 1, 1);
+    sun.diffuse = glm::vec3(0.6, 0.6, 0.6);
+    sun.specular = glm::vec3(1.0, 1.0, 1.0);
 
-    pointLight.constant = 1.0f;
-    pointLight.linear = 0.09f;
-    pointLight.quadratic = 0.032f;
+    sun.constant = 1.0f;
+    sun.linear = 0.09f;
+    sun.quadratic = 0.032f;
 
     Shader skyboxShader("resources/shaders/skybox.vs", "resources/shaders/skybox.fs");
 
@@ -300,9 +300,9 @@ int main() {
     // --------------------------------
     vector<glm::vec3> vegetation
             {
-                    glm::vec3(-10.0f, 0.0f, -1.3f),
-                    glm::vec3(3.5f, 0.0f, -5.3f),
-                    glm::vec3(1.0f, 0.0f, -1.7f)
+                    glm::vec3(-200.0f, 30.0f, -30.3f),
+                    glm::vec3(120.5f, 30.0f, -100.3f),
+                    glm::vec3(120.0f, 30.0f, -100.7f)
             };
 
     // shader configuration
@@ -323,41 +323,37 @@ int main() {
     unsigned int amount = 20;
     glm::mat4* modelMatrices;
     modelMatrices = new glm::mat4[amount];
-    srand(glfwGetTime()); // initialize random seed
-    float radius = 150.0;
-    float offset = 10.0f;
+    srand(glfwGetTime());
+    float offset = 20.0f;
     float x = -40.0f;
-    float y_base = -40.0f;
-    float z = -60.0f;
+    float y_base = -80.0f;
+    float z = 0.0f;
     for (unsigned int i = 0; i < amount; i++)
     {
         glm::mat4 model = glm::mat4(1.0f);
-        // 1. translation: displace along circle with 'radius' in range [-offset, offset]
-        /*float angle = (float)i / (float)amount * 360.0f;
-        float displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
-        float x = sin(angle) * radius + displacement;
-        displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
-        float y = displacement * 0.4f; // keep height of asteroid field smaller compared to width of x and z
-        displacement = (rand() % (int)(2 * offset * 100)) / 100.0f - offset;
-        float z = cos(angle) * radius + displacement;*/
         x -= offset;
         int testNumber = rand() % (int)2;
-        int y = y_base;
+        float y = y_base;
         if(testNumber == 1){
-            y -= std::max(rand() % 20, 10);
+            y -= (i%5+1.0f)*std::max(rand() % 20, 10);
+            z -= 1.0f;
         }
         else{
-            y += std::min(rand() % 20, 10);
+            y += (i%5+1.0f)*std::max(rand() % 20, 10);
+            z -= 1.0f;
         }
         model = glm::translate(model, glm::vec3(x, y, z));
 
-        // 2. scale: Scale between 0.05 and 0.25f
-        float scale = 0.4;
+        float scale = 1.0;
         model = glm::scale(model, glm::vec3(scale));
 
-        model = glm::rotate(model, glm::radians(-45.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        if(i > 5){
+            model = glm::rotate(model, glm::radians(-45.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        }
+        else{
+            model = glm::rotate(model, glm::radians(-65.0f), glm::vec3(1.0f, 0.0f, 0.0f));
+        }
 
-        // 4. now add to list of matrices
         modelMatrices[i] = model;
     }
 
@@ -418,19 +414,19 @@ int main() {
 
         // don't forget to enable shader before setting uniforms
         ourShader.use();
-        pointLight.position = glm::vec3(4.0 * cos(currentFrame), 4.0f, 4.0 * sin(currentFrame));
-        ourShader.setVec3("pointLight.position", pointLight.position);
-        ourShader.setVec3("pointLight.ambient", pointLight.ambient);
-        ourShader.setVec3("pointLight.diffuse", pointLight.diffuse);
-        ourShader.setVec3("pointLight.specular", pointLight.specular);
-        ourShader.setFloat("pointLight.constant", pointLight.constant);
-        ourShader.setFloat("pointLight.linear", pointLight.linear);
-        ourShader.setFloat("pointLight.quadratic", pointLight.quadratic);
+        sun.direction = glm::vec3(-6.0f, 4.0f, 10.0f);
+        ourShader.setVec3("sun.direction", sun.direction);
+        ourShader.setVec3("sun.ambient", sun.ambient);
+        ourShader.setVec3("sun.diffuse", sun.diffuse);
+        ourShader.setVec3("sun.specular", sun.specular);
+        ourShader.setFloat("sun.constant", sun.constant);
+        ourShader.setFloat("sun.linear", sun.linear);
+        ourShader.setFloat("sun.quadratic", sun.quadratic);
         ourShader.setVec3("viewPosition", programState->camera.Position);
         ourShader.setFloat("material.shininess", 32.0f);
         // view/projection transformations
         glm::mat4 projection = glm::perspective(glm::radians(programState->camera.Zoom),
-                                                (float) SCR_WIDTH / (float) SCR_HEIGHT, 0.1f, 300.0f);
+                                                (float) SCR_WIDTH / (float) SCR_HEIGHT, 0.1f, 500.0f);
         glm::mat4 view = programState->camera.GetViewMatrix();
         ourShader.setMat4("projection", projection);
         ourShader.setMat4("view", view);
@@ -444,15 +440,52 @@ int main() {
         ourShader.setMat4("model", model);
         ourModel.Draw(ourShader);
 
-        ourShader.setFloat("pointLight.quadratic", 0);
-
+        transparentShader.use();
+        transparentShader.setMat4("projection", projection);
+        transparentShader.setMat4("view", view);
+        // vegetation
+        glBindVertexArray(transparentVAO);
+        glBindTexture(GL_TEXTURE_2D, treeFlowersTexture);
+        for (unsigned int i = 0; i < 2; i++)
+        {
+            model = glm::mat4(1.0f);
+            model = glm::translate(model, vegetation[i]);
+            if(i==0){
+                model = glm::rotate(model, glm::radians(45.0f),glm::vec3(0, 1, 0));
+                model = glm::scale(model, glm::vec3(100));
+            }
+            else {
+                model = glm::rotate(model, glm::radians(-45.0f), glm::vec3(0, 1, 0));
+                model = glm::scale(model, glm::vec3(100));
+            }
+            transparentShader.setMat4("model", model);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
+        }
+        glBindTexture(GL_TEXTURE_2D, grassTexture);
         model = glm::mat4(1.0f);
-        model = glm::translate(model,
-                               glm::vec3(37.0f, 0.0f, 0.0f)); // translate it down so it's at the center of the scene
-        model = glm::scale(model, glm::vec3(programState->modelScale));    // it's a bit too big for our scene, so scale it down
-        model = glm::rotate(model, glm::radians(-45.0f), glm::vec3(1, 0, 0));
-        ourShader.setMat4("model", model);
-        ourModel.Draw(ourShader);
+        model = glm::translate(model, vegetation[vegetation.size()-1]);
+        model = glm::rotate(model, glm::radians(-45.0f),glm::vec3(0, 1, 0));
+        model = glm::scale(model, glm::vec3(100));
+        transparentShader.setMat4("model", model);
+        glDrawArrays(GL_TRIANGLES, 0, 6);
+
+        //draw instances
+        instanceShader.use();
+        instanceShader.setMat4("projection", projection);
+        instanceShader.setMat4("view", view);
+
+
+        // draw colony
+        instanceShader.use();
+        instanceShader.setInt("texture_diffuse1", 0);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, colony.textures_loaded[0].id); // note: we also made the textures_loaded vector public (instead of private) from the model class.
+        for (unsigned int i = 0; i < colony.meshes.size(); i++)
+        {
+            glBindVertexArray(colony.meshes[i].VAO);
+            glDrawElementsInstanced(GL_TRIANGLES, colony.meshes[i].indices.size(), GL_UNSIGNED_INT, 0, amount);
+            glBindVertexArray(0);
+        }
 
         // draw skybox as last
         glDepthFunc(GL_LEQUAL);  // change depth function so depth test passes when values are equal to depth buffer's content
@@ -467,53 +500,6 @@ int main() {
         glDrawArrays(GL_TRIANGLES, 0, 36);
         glBindVertexArray(0);
         glDepthFunc(GL_LESS); // set depth function back to default
-
-        transparentShader.use();
-        transparentShader.setMat4("projection", projection);
-        transparentShader.setMat4("view", view);
-        // vegetation
-        glBindVertexArray(transparentVAO);
-        glBindTexture(GL_TEXTURE_2D, treeFlowersTexture);
-        for (unsigned int i = 0; i < 2; i++)
-        {
-            model = glm::mat4(1.0f);
-            model = glm::translate(model, vegetation[i]);
-            if(i==0){
-                model = glm::rotate(model, glm::radians(45.0f),glm::vec3(0, 1, 0));
-                model = glm::scale(model, glm::vec3(2));
-            }
-            else {
-                model = glm::rotate(model, glm::radians(-45.0f), glm::vec3(0, 1, 0));
-                model = glm::scale(model, glm::vec3(3));
-            }
-            transparentShader.setMat4("model", model);
-            glDrawArrays(GL_TRIANGLES, 0, 6);
-        }
-        glBindTexture(GL_TEXTURE_2D, grassTexture);
-        model = glm::mat4(1.0f);
-        model = glm::translate(model, vegetation[vegetation.size()-1]);
-        model = glm::rotate(model, glm::radians(-45.0f),glm::vec3(0, 1, 0));
-        //model = glm::scale(model, glm::vec3(2));
-        transparentShader.setMat4("model", model);
-        glDrawArrays(GL_TRIANGLES, 0, 6);
-
-        //draw instances
-        instanceShader.use();
-        instanceShader.setMat4("projection", projection);
-        instanceShader.setMat4("view", view);
-
-
-        // draw meteorites
-        instanceShader.use();
-        instanceShader.setInt("texture_diffuse1", 0);
-        glActiveTexture(GL_TEXTURE0);
-        glBindTexture(GL_TEXTURE_2D, colony.textures_loaded[0].id); // note: we also made the textures_loaded vector public (instead of private) from the model class.
-        for (unsigned int i = 0; i < colony.meshes.size(); i++)
-        {
-            glBindVertexArray(colony.meshes[i].VAO);
-            glDrawElementsInstanced(GL_TRIANGLES, colony.meshes[i].indices.size(), GL_UNSIGNED_INT, 0, amount);
-            glBindVertexArray(0);
-        }
 
 
         if (programState->ImGuiEnabled)
@@ -596,15 +582,15 @@ void DrawImGui(ProgramState *programState) {
     {
         static float f = 0.0f;
         ImGui::Begin("Hello window");
-        ImGui::Text("Hello text");
+        ImGui::Text("Set parameters");
         ImGui::SliderFloat("Float slider", &f, 0.0, 1.0);
         ImGui::ColorEdit3("Background color", (float *) &programState->clearColor);
-        ImGui::DragFloat3("Model position", (float*)&programState->modelPosition);
-        ImGui::DragFloat("Model scale", &programState->modelScale, 0.05, 0.1, 4.0);
+        ImGui::DragFloat3("Queen position", (float*)&programState->modelPosition);
+        ImGui::DragFloat("Queen scale", &programState->modelScale, 0.05, 0.1, 4.0);
 
-        ImGui::DragFloat("pointLight.constant", &programState->pointLight.constant, 0.05, 0.0, 1.0);
-        ImGui::DragFloat("pointLight.linear", &programState->pointLight.linear, 0.05, 0.0, 1.0);
-        ImGui::DragFloat("pointLight.quadratic", &programState->pointLight.quadratic, 0.05, 0.0, 1.0);
+        ImGui::DragFloat("sun.constant", &programState->sun.constant, 0.05, 0.0, 1.0);
+        ImGui::DragFloat("sun.linear", &programState->sun.linear, 0.05, 0.0, 1.0);
+        ImGui::DragFloat("sun.quadratic", &programState->sun.quadratic, 0.05, 0.0, 1.0);
         ImGui::End();
     }
 
