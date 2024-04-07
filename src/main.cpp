@@ -414,15 +414,16 @@ int main() {
 
         // don't forget to enable shader before setting uniforms
         ourShader.use();
-        sun.direction = glm::vec3(-6.0f, 4.0f, 10.0f);
-        ourShader.setVec3("sun.direction", sun.direction);
-        ourShader.setVec3("sun.ambient", sun.ambient);
-        ourShader.setVec3("sun.diffuse", sun.diffuse);
-        ourShader.setVec3("sun.specular", sun.specular);
-        ourShader.setFloat("sun.constant", sun.constant);
-        ourShader.setFloat("sun.linear", sun.linear);
-        ourShader.setFloat("sun.quadratic", sun.quadratic);
-        ourShader.setVec3("viewPosition", programState->camera.Position);
+        ourShader.use();
+        ourShader.setVec3("light.direction", -2.8f, -2.0f, -3.5f);
+        ourShader.setVec3("viewPos", programState->camera.Position);
+
+        // light properties
+        ourShader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
+        ourShader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
+        ourShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
+
+        // material properties
         ourShader.setFloat("material.shininess", 32.0f);
         // view/projection transformations
         glm::mat4 projection = glm::perspective(glm::radians(programState->camera.Zoom),
