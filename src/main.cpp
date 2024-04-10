@@ -51,10 +51,6 @@ struct Light {
     glm::vec3 ambient;
     glm::vec3 diffuse;
     glm::vec3 specular;
-
-    float constant;
-    float linear;
-    float quadratic;
 };
 
 struct ProgramState {
@@ -181,10 +177,6 @@ int main() {
     sun.ambient = glm::vec3(1, 1, 1);
     sun.diffuse = glm::vec3(0.6, 0.6, 0.6);
     sun.specular = glm::vec3(1.0, 1.0, 1.0);
-
-    sun.constant = 1.0f;
-    sun.linear = 0.09f;
-    sun.quadratic = 0.032f;
 
     Shader skyboxShader("resources/shaders/skybox.vs", "resources/shaders/skybox.fs");
 
@@ -335,11 +327,11 @@ int main() {
         int testNumber = rand() % (int)2;
         float y = y_base;
         if(testNumber == 1){
-            y -= (i%5+1.0f)*std::max(rand() % 20, 10);
+            y -= (i%4+1.0f)*std::max(rand() % 20, 10);
             z -= 1.0f;
         }
         else{
-            y += (i%5+1.0f)*std::max(rand() % 20, 10);
+            y += (i%4+1.0f)*std::max(rand() % 20, 10);
             z -= 1.0f;
         }
         model = glm::translate(model, glm::vec3(x, y, z));
@@ -418,16 +410,16 @@ int main() {
         ourShader.setVec3("light.direction", -2.8f, -2.0f, -3.5f);
         ourShader.setVec3("viewPos", programState->camera.Position);
 
-        // light properties
+        // light properties in Blinn-Phong model
         ourShader.setVec3("light.ambient", 0.2f, 0.2f, 0.2f);
         ourShader.setVec3("light.diffuse", 0.5f, 0.5f, 0.5f);
         ourShader.setVec3("light.specular", 1.0f, 1.0f, 1.0f);
 
         // material properties
-        ourShader.setFloat("material.shininess", 32.0f);
+        ourShader.setFloat("material.shininess", 64.0f);
         // view/projection transformations
         glm::mat4 projection = glm::perspective(glm::radians(programState->camera.Zoom),
-                                                (float) SCR_WIDTH / (float) SCR_HEIGHT, 0.1f, 500.0f);
+                                                (float) SCR_WIDTH / (float) SCR_HEIGHT, 0.1f, 600.0f);
         glm::mat4 view = programState->camera.GetViewMatrix();
         ourShader.setMat4("projection", projection);
         ourShader.setMat4("view", view);
@@ -588,10 +580,6 @@ void DrawImGui(ProgramState *programState) {
         ImGui::ColorEdit3("Background color", (float *) &programState->clearColor);
         ImGui::DragFloat3("Queen position", (float*)&programState->modelPosition);
         ImGui::DragFloat("Queen scale", &programState->modelScale, 0.05, 0.1, 4.0);
-
-        ImGui::DragFloat("sun.constant", &programState->sun.constant, 0.05, 0.0, 1.0);
-        ImGui::DragFloat("sun.linear", &programState->sun.linear, 0.05, 0.0, 1.0);
-        ImGui::DragFloat("sun.quadratic", &programState->sun.quadratic, 0.05, 0.0, 1.0);
         ImGui::End();
     }
 
